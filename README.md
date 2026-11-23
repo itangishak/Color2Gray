@@ -53,3 +53,15 @@ g2 = color2gray_enhanced(rgb_img, theta=30.0, alpha=4.0)
 - `templates/index.html` — Web interface for image upload and result comparison.
 - `requirements.txt` — Python dependencies.
 - `static/dataset_images/` — Sample images for testing and evaluation.
+
+## Testing
+
+Run the automated tests using:
+
+    python -m unittest discover -s tests -v
+
+The test suite covers:
+- Vanilla and Enhanced Color2Gray conversion.
+- Uniform-image processing.
+- Numerical solver failure detection.
+- Flask application and image-upload functionality.
