@@ -6,3 +6,10 @@ venv/
 .env.*
 .DS_Store
 .ipynb_checkpoints/
+
+# Python virtual environment
+/color2gray/
+
+# Generated application files
+/static/uploads/
+/static/results/

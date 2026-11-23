@@ -65,7 +65,7 @@ def color2gray_vanilla(rgb_img: np.ndarray, theta: float = 30.0, lab_override=No
     np.add.at(b_vec, j_edges, -d_ij)
 
     # Warm-start from L* — usually converges in well under 150 iterations.
-    g_flat, _ = cg(A, b_vec, x0=Lf.copy(), tol=1e-4, maxiter=150)
+    g_flat, _ = cg(A, b_vec, x0=Lf.copy(), rtol=1e-4, maxiter=150)
 
     g = g_flat.reshape(h, w)
     g = (g - g.min()) / (g.max() - g.min() + 1e-8) * 255

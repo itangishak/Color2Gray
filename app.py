@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, url_for
-from PIL import Image
+from flask import Flask, render_template, request, url_for, abort
+from PIL import Image, UnidentifiedImageError
 import numpy as np
 import os
+from math import isfinite
 from datetime import datetime
 from utils.color_conversion import rgb_to_lab
 from utils.color2gray_impl import color2gray_vanilla, color2gray_enhanced
@@ -21,13 +22,17 @@ def index():
     preview_url = None
 
     if request.method == 'POST':
-        file = request.files['file']
+        file = request.files.get('file')
+        if not file or not file.filename:
+            abort(400, description="Please select an image.")
         if file and file.filename:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             original_path = os.path.join(UPLOAD_FOLDER, f"original_{timestamp}.jpg")
-            file.save(original_path)
+            try:
+                img_pil = Image.open(file.stream).convert('RGB')
+            except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+                abort(400, description="Invalid or unsupported image.")
 
-            img_pil = Image.open(original_path).convert('RGB')
             method = request.form.get('method', 'all')
 
             # Running all three methods on a large image is expensive — cap it lower.
@@ -45,10 +50,22 @@ def index():
 
             img_rgb = np.array(img_pil_resized)
 
-            theta = float(request.form.get('theta', 30))
-            guided_r = int(request.form.get('guided_r', 4))
-            guided_eps = float(request.form.get('guided_eps', 0.001))
-            alpha = float(request.form.get('alpha', 4.0))
+            try:
+                theta = float(request.form.get('theta', 30))
+                guided_r = int(request.form.get('guided_r', 4))
+                guided_eps = float(request.form.get('guided_eps', 0.001))
+                alpha = float(request.form.get('alpha', 4.0))
+            except (ValueError, TypeError):
+                abort(400, description="Invalid numeric parameter.")
+
+            if (not all(map(isfinite, [theta, guided_eps, alpha]))
+                    or not 0 <= theta <= 85
+                    or guided_r < 1
+                    or guided_eps <= 0
+                    or alpha < 0):
+                abort(400, description="Numeric parameter out of range.")
+
+            img_pil.save(original_path)
 
             # guided_r scales memory quadratically, so clamp it to something sane.
             h, w = img_rgb.shape[:2]
