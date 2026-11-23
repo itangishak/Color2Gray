@@ -44,12 +44,12 @@ g1 = color2gray_vanilla(rgb_img, theta=30.0)
 g2 = color2gray_enhanced(rgb_img, theta=30.0, alpha=4.0)
 ```
 
-## Files
+## Project Structure
 
-- `utils/color2gray_impl.py` — vanilla and enhanced implementations.
-- `utils/guided_filter.py` — edge-aware guided filter.
-- `app.py` — Flask app.
-
-## Requirements
-
-Python 3.9+, NumPy, SciPy, Pillow, Flask. See `requirements.txt`.
+- `app.py` — Flask application and image-processing interface.
+- `utils/color2gray_impl.py` — Vanilla and enhanced Color2Gray algorithms.
+- `utils/color_conversion.py` — RGB to CIELAB color-space conversion.
+- `utils/guided_filter.py` — Edge-preserving guided filtering.
+- `templates/index.html` — Web interface for image upload and result comparison.
+- `requirements.txt` — Python dependencies.
+- `static/dataset_images/` — Sample images for testing and evaluation.
