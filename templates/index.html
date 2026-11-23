@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salience-Preserving Color2Gray</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(to bottom, #f0f4f8, #d9e2ec); margin: 0; padding: 0; color: #333; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        header h1 { font-size: 3em; margin: 0; }
+        header p { font-size: 1.4em; margin: 10px 0 0; opacity: 0.9; }
+        .container { max-width: 1400px; margin: 40px auto; padding: 0 20px; }
+        .upload-section { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); text-align: center; margin-bottom: 40px; }
+        .controls { background: #f8f9fa; padding: 30px; border-radius: 16px; margin: 30px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        label { display: block; margin: 20px 0 8px; font-weight: 600; font-size: 1.1em; }
+        select, input[type="range"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 1em; }
+        .slider-value { float: right; font-weight: bold; color: #667eea; }
+        .buttons { text-align: center; margin: 40px 0; }
+        .btn { padding: 16px 32px; font-size: 1.2em; margin: 0 15px; border: none; border-radius: 50px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .choose-btn { background: #2575fc; color: white; }
+        .process-btn { background: #28a745; color: white; }
+        .process-btn:hover { background: #218838; transform: translateY(-3px); }
+        .preview-img { max-width: 100%; max-height: 600px; margin: 30px auto; display: block; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        .results { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; margin-top: 50px; }
+        .img-box { background: white; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.1); transition: transform 0.3s; }
+        .img-box:hover { transform: translateY(-10px); }
+        .img-box h3 { margin: 0 0 20px; font-size: 1.4em; color: #667eea; }
+        .img-box img { max-width: 100%; border-radius: 12px; border: 1px solid #eee; }
+        .download-btn { display: inline-block; margin-top: 15px; padding: 10px 20px; background: #764ba2; color: white; text-decoration: none; border-radius: 50px; transition: background 0.3s; }
+        .download-btn:hover { background: #5a3780; }
+        .demo-note { text-align: center; font-style: italic; color: #666; margin: 40px 0; font-size: 1.1em; }
+        #filename-display { margin-top: 15px; font-size: 1.1em; color: #555; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Saliency-Aware Chromatic Boosting for Color-to-Grayscale Conversion</h1>
+    </header>
+
+    <div class="container">
+        <div class="upload-section">
+            <h2>Upload Your Image</h2>
+            <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                <input type="file" name="file" accept="image/*" required id="fileInput" style="display:none;">
+                <button type="button" class="btn choose-btn" onclick="document.getElementById('fileInput').click();">
+                    Choose Image
+                </button>
+                <p id="filename-display">No file chosen</p>
+            </form>
+
+            <!-- Instant Original Preview -->
+            <div id="original-preview-container" style="display:none; margin-top:40px;">
+                <h3>Original Image Preview</h3>
+                <img id="original-preview" class="preview-img" src="" alt="Original Preview">
+            </div>
+        </div>
+
+        <div class="controls">
+            <label for="method">Processing Method</label>
+            <select id="method" name="method" form="uploadForm">
+                <option value="all">All Comparisons (Recommended)</option>
+                <option value="standard">Standard Grayscale Only</option>
+                <option value="vanilla">Vanilla Color2Gray Only</option>
+                <option value="enhanced">Enhanced (Our Method) Only</option>
+            </select>
+
+            <label for="theta">Chrominance Strength (θ) <span class="slider-value" id="theta-val">30</span>°</label>
+            <input type="range" min="0" max="90" value="30" id="theta" name="theta" form="uploadForm">
+
+            <label for="guided_r">Guided Filter Radius <span class="slider-value" id="r-val">8</span></label>
+            <input type="range" min="2" max="32" step="2" value="8" id="guided_r" name="guided_r" form="uploadForm">
+
+            <label for="guided_eps">Guided Filter ε <span class="slider-value" id="eps-val">0.010</span></label>
+            <input type="range" min="0.001" max="0.1" step="0.001" value="0.01" id="guided_eps" name="guided_eps" form="uploadForm">
+
+            <label for="alpha">Chroma Boost (α) <span class="slider-value" id="alpha-val">4.0</span></label>
+            <input type="range" min="0.0" max="8.0" step="0.1" value="4.0" id="alpha" name="alpha" form="uploadForm">
+        </div>
+
+        <div class="buttons">
+            <button type="submit" form="uploadForm" class="btn process-btn">Process Image</button>
+        </div>
+
+        {% if results %}
+        <h2 style="text-align:center; font-size:2.5em; margin:60px 0 40px; color:#667eea;">Results</h2>
+        <div class="results" style="grid-template-columns: repeat(2, 1fr); max-width: 1200px; margin: 0 auto;">
+            <!-- Box 1: Original Image -->
+            <div class="img-box">
+                <h3>Original Image</h3>
+                <img src="{{ url_for('static', filename=results.original) }}" alt="Original">
+                <a href="{{ url_for('static', filename=results.original) }}" download class="download-btn">Download</a>
+            </div>
+
+            <!-- Box 2: Standard Grayscale -->
+            {% if results.standard %}
+            <div class="img-box">
+                <h3>Standard Grayscale (L* only)</h3>
+                <img src="{{ url_for('static', filename=results.standard) }}" alt="Standard">
+                <a href="{{ url_for('static', filename=results.standard) }}" download class="download-btn">Download</a>
+            </div>
+            {% endif %}
+
+            <!-- Box 3: Vanilla (Gooch 2005) -->
+            {% if results.vanilla %}
+            <div class="img-box">
+                <h3>Vanilla (Gooch 2005)</h3>
+                <img src="{{ url_for('static', filename=results.vanilla) }}" alt="Vanilla">
+                <a href="{{ url_for('static', filename=results.vanilla) }}" download class="download-btn">Download</a>
+            </div>
+            {% endif %}
+
+            <!-- Box 4: Enhanced (Our Method) -->
+            {% if results.enhanced %}
+            <div class="img-box">
+                <h3>Enhanced (Our Method)</h3>
+                <img src="{{ url_for('static', filename=results.enhanced) }}" alt="Enhanced">
+                <a href="{{ url_for('static', filename=results.enhanced) }}" download class="download-btn">Download</a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+     
+    </div>
+
+    <script>
+        // Instant preview
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('original-preview-container');
+        const previewImg = document.getElementById('original-preview');
+        const filenameDisplay = document.getElementById('filename-display');
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                filenameDisplay.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    previewImg.src = ev.target.result;
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                filenameDisplay.textContent = 'No file chosen';
+                previewContainer.style.display = 'none';
+            }
+        });
+
+        // Live slider values
+        document.getElementById('theta').addEventListener('input', function() {
+            document.getElementById('theta-val').textContent = this.value;
+        });
+        document.getElementById('guided_r').addEventListener('input', function() {
+            document.getElementById('r-val').textContent = this.value;
+        });
+        document.getElementById('guided_eps').addEventListener('input', function() {
+            document.getElementById('eps-val').textContent = parseFloat(this.value).toFixed(3);
+        });
+        document.getElementById('alpha').addEventListener('input', function() {
+            document.getElementById('alpha-val').textContent = parseFloat(this.value).toFixed(1);
+        });
+    </script>
+</body>
+</html>
