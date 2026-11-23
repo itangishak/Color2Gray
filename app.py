@@ -52,26 +52,16 @@ def index():
 
             try:
                 theta = float(request.form.get('theta', 30))
-                guided_r = int(request.form.get('guided_r', 4))
-                guided_eps = float(request.form.get('guided_eps', 0.001))
                 alpha = float(request.form.get('alpha', 4.0))
             except (ValueError, TypeError):
                 abort(400, description="Invalid numeric parameter.")
 
-            if (not all(map(isfinite, [theta, guided_eps, alpha]))
+            if (not all(map(isfinite, [theta, alpha]))
                     or not 0 <= theta <= 85
-                    or guided_r < 1
-                    or guided_eps <= 0
                     or alpha < 0):
                 abort(400, description="Numeric parameter out of range.")
 
             img_pil.save(original_path)
-
-            # guided_r scales memory quadratically, so clamp it to something sane.
-            h, w = img_rgb.shape[:2]
-            max_r = min(32, min(h, w) // 4)
-            guided_r = min(guided_r, max_r)
-            print(f"guided_r={guided_r} (clamped to {max_r})")
 
             print("Converting to Lab...")
             lab = rgb_to_lab(img_rgb)
